@@ -75,22 +75,24 @@ library (scales)
 library(bbl)
 library(fitdistrplus)
 
-
+#install.packages("gt")
 
 ```
 
 ```{r data, include=FALSE}
 
-age_length_keys <- read_csv("C:\\Users\\Lenovo\\ownCloud\\Radgjof\\Ráðgjöf\\Bláa hagkerfið\\Hafró\\golden_redfish_data3\\redfish_age_length_keys.csv")
-length_dist_SMB <- read_csv("C:\\Users\\Lenovo\\ownCloud\\Radgjof\\Ráðgjöf\\Bláa hagkerfið\\Hafró\\golden_redfish_data3\\redfish_length_dist_SMB.csv")
-length_dist_SMH <- read_csv("C:\\Users\\Lenovo\\ownCloud\\Radgjof\\Ráðgjöf\\Bláa hagkerfið\\Hafró\\golden_redfish_data3\\redfish_length_dist_SMH.csv")
-length_dist_commercial <- read_csv("C:\\Users\\Lenovo\\ownCloud\\Radgjof\\Ráðgjöf\\Bláa hagkerfið\\Hafró\\golden_redfish_data3\\redfish_length_dist_commercial.csv")
+age_length_keys <- read_csv("R:\\Ráðgjöf\\Bláa hagkerfið\\Hafró\\golden_redfish_data3\\redfish_age_length_keys.csv")
+length_dist_SMB <- read_csv("R:\\Ráðgjöf\\Bláa hagkerfið\\Hafró\\golden_redfish_data3\\redfish_length_dist_SMB.csv")
+length_dist_SMH <- read_csv("R:\\Ráðgjöf\\Bláa hagkerfið\\Hafró\\golden_redfish_data3\\redfish_length_dist_SMH.csv")
+length_dist_commercial <- read_csv("R:\\Ráðgjöf\\Bláa hagkerfið\\Hafró\\golden_redfish_data3\\redfish_length_dist_commercial.csv")
 
-Samthjoppun_1920 <- read_excel("C:/Users/Lenovo/ownCloud/Radgjof/Ráðgjöf/Brim/Samthjoppun_1920.xlsx")
+Samthjoppun_1920 <- read_excel("R:/Ráðgjöf/Brim/Samthjoppun_1920.xlsx")
 
-ghalibut_length_dist_SMB <- read_csv("C:/Users/Lenovo/ownCloud/Radgjof/Ráðgjöf/Bláa hagkerfið/Hafró/greenland_halibut_data/ghalibut_length_dist_SMB.csv")
-ghalibut_length_dist_SMH <- read_csv("C:/Users/Lenovo/ownCloud/Radgjof/Ráðgjöf/Bláa hagkerfið/Hafró/greenland_halibut_data/ghalibut_length_dist_SMH.csv")
-ghalibut_length_dist_commercial <- read_csv("C:/Users/Lenovo/ownCloud/Radgjof/Ráðgjöf/Bláa hagkerfið/Hafró/greenland_halibut_data/ghalibut_length_dist_commercial.csv")
+ghalibut_length_dist_SMB <- read_csv("R:/Ráðgjöf/Bláa hagkerfið/Hafró/greenland_halibut_data/ghalibut_length_dist_SMB.csv")
+ghalibut_length_dist_SMH <- read_csv("R:/Ráðgjöf/Bláa hagkerfið/Hafró/greenland_halibut_data/ghalibut_length_dist_SMH.csv")
+ghalibut_length_dist_commercial <- read_csv("R:/Ráðgjöf/Bláa hagkerfið/Hafró/greenland_halibut_data/ghalibut_length_dist_commercial.csv")
+#R:\Ráðgjöf
+
 
 ```
 # Samantekt 
