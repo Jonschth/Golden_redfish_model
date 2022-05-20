@@ -24,14 +24,12 @@ from sklearn.preprocessing import StandardScaler
 
 import shap
 
-afli =[44,43,51,48,49,54,50,48,45,41,41]
 
+path_str = 'R:\\Ráðgjöf\\Bláa hagkerfið\\Hafró\\distribution_output\\'
 
+X_df = pd.read_csv(path_str+'distribution.csv',sep =",")
+catch_df = pd.read_csv(path_str+'golden_redfish_catch.csv',sep =";")
 
-X_df = pd.read_csv('C:\\Users\\Lenovo\\ownCloud\\Radgjof\\Ráðgjöf\\Bláa hagkerfið\\Hafró\\distribution_output\\distribution.csv',sep =",")
-
-
-# mismunaröð bætt við
 
 
 
@@ -43,7 +41,7 @@ def find_per(year, lengd):
 
 
 
-STARTING_YEAR = 2011
+STARTING_YEAR = 1985
 ENDING_YEAR = 2021
 old_year= STARTING_YEAR
 
@@ -62,7 +60,7 @@ for index, row in X_df.iterrows():
 X_df.fillna(0, inplace=True)        
             
 X1_df =X_df                  
-X1_df.drop(X1_df[X1_df.ar == 2015].index, inplace=True)        
+X1_df.drop(X1_df[X1_df.ar == 1985].index, inplace=True)        
         
             
 
@@ -72,7 +70,7 @@ X = X1_df.loc[:,['ar','lengd']]
 Y1 = X1_df.loc[:,['diff']]
 
 for index, row in X.iterrows():
-    X.at[index,'afli']=afli[int(row[0]-2016)]
+    X.at[index,'afli']=catch_df.iloc[int(row[0]-1986),1]
 
 
 
@@ -82,7 +80,7 @@ seed = 0
 line_int=0
 X_test1=pd.DataFrame()
 
-for length in range(11,61):
+for length in range(5,61):
     X_test1.at[line_int,1]=int(2023)
     X_test1.at[line_int,2]=int(length) 
     X_test1.at[line_int,3]=int(72) 
@@ -208,7 +206,7 @@ Forecast_df
 
 Forecast_df['ar']=2023
 
-length_df=pd.DataFrame(np.arange(11,61))
+length_df=pd.DataFrame(np.arange(5,61))
 length_df.columns=['lengd']
 
 Forecast_df.drop('svr', axis=1, inplace=True)
@@ -220,7 +218,7 @@ result_df=pd.concat([X_df['ar'],X_df['lengd'],X_df['per']], axis=1)
 result_df=result_df.append(Forecast_df, ignore_index=True)
 
 
-result_df.to_csv('C:\\Users\\Lenovo\\ownCloud\\Radgjof\\Ráðgjöf\\Bláa hagkerfið\\Hafró\\distribution_output\\distribution_forecast.csv')
+result_df.to_csv(path_str+'distribution_forecast.csv')
 
 
 explainer = shap.TreeExplainer(xgb_regressor)
