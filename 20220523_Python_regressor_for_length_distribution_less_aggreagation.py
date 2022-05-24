@@ -30,11 +30,6 @@ path_str_gr = 'R:\\Ráðgjöf\\Bláa hagkerfið\\Hafró\\golden_redfish_data\\'
 
 
 
-
-
-
-
-
 X_df = pd.read_csv(path_str+'distribution.csv',sep =",")
 XX_df=X_df.pivot(index='ar', columns='lengd', values='sum_fjoldi')
 
@@ -56,6 +51,7 @@ XX_df.drop(14.9,axis=1, inplace=True)
 
 
 YX = pd.read_csv(path_str+"RED_numbers_at_age.csv", sep=";")
+YY=YX.iloc[15:52,28]
 XX_df.fillna(0, inplace=True)     
 
 
@@ -113,7 +109,7 @@ line_int=0
 X_test1=pd.DataFrame()
 
 for length in range(5,61):
-    X_test1.at[line_int,1]=int(2023)
+    X_test1.at[line_int,1]=int(2022)
     X_test1.at[line_int,2]=int(length) 
     X_test1.at[line_int,3]=int(72) 
     
@@ -130,12 +126,10 @@ X_trainR, X_testR, y_trainR, y_testR = train_test_split(X,
 
 
 
-#mean_train = np.mean(y_trainR)
-#baseline_predictions = np.ones(y_testR.shape) * mean_train
-# Reikna meðal skekkju
-
-#mae_baseline = mean_absolute_error(y_testR, baseline_predictions)
-#print("Baseline MAE is {:.3f}".format(mae_baseline))
+XX_trainR, XX_testR, yY_trainR, yY_testR = train_test_split(XX_df,
+                                                    YY,
+                                                    test_size=test_size,
+                                                    random_state=seed)
 
 xgb1 = xgb.XGBRegressor(seed=2)
 
@@ -153,15 +147,17 @@ parameters = {
 
 xgb_regressor = GridSearchCV(xgb1, parameters, cv=2, n_jobs=5, verbose=5)
 
-xgb_regressor.fit(X, Y1)
+xgb_regressor.fit(XX_df, YY)
 
 
 print(xgb_regressor.best_score_)
 
 print(xgb_regressor.best_params_)
 
-y_pred = xgb_regressor.predict(X_testR)
-y_pred_xgb = xgb_regressor.predict(X_test1)
+y_pred = xgb_regressor.predict(XX_testR)
+
+"""
+y_pred_xgb = xgb_regressor.predict(XX_test1)
 
 
 per_2021_lst=[]
@@ -265,4 +261,4 @@ shap.force_plot(explainer.expected_value,
                 shap_values[idx], 
                 X_test1.iloc[idx,:]) 
 
-
+"""
