@@ -156,40 +156,25 @@ print(xgb_regressor.best_params_)
 
 y_pred = xgb_regressor.predict(XX_testR)
 
-"""
-y_pred_xgb = xgb_regressor.predict(XX_test1)
 
 
-per_2021_lst=[]
-for index, row in X_df.iterrows(): 
-    if row[0] == 2021:
-        per_2021_lst.append(row[5])
-
-
-y_pred_xgb=y_pred_xgb+per_2021_lst
-
-
-
-print("mae", mean_absolute_error(y_testR, y_pred))
-print("rmse", math.sqrt(mean_squared_error(y_testR, y_pred)))
-print("r2", r2_score(y_testR, y_pred))
-print("evs", explained_variance_score(y_testR, y_pred))
+print("mae", mean_absolute_error(yY_testR, y_pred))
+print("rmse", math.sqrt(mean_squared_error(yY_testR, y_pred)))
+print("r2", r2_score(yY_testR, y_pred))
+print("evs", explained_variance_score(yY_testR, y_pred))
 
 
 
 
-#y_pred_svm = gs.predict(X_test1)
 predictions = [round(value) for value in y_pred]
 
-Forecast = np.vstack((y_pred_xgb))
-Forecast_df = pd.DataFrame(Forecast, columns=["xgb"], index=X_test1.index)
-Forecast_df.reset_index()
+
 
 params = xgb_regressor.best_params_
 xgb_regressor = xgb.XGBRegressor(**params)
-eval_set = [(X_trainR, y_trainR), (X_testR, y_testR)]
-xgb_regressor.fit(X_trainR,
-                  y_trainR,
+eval_set = [(XX_trainR, yY_trainR), (XX_testR, yY_testR)]
+xgb_regressor.fit(XX_trainR,
+                  yY_trainR,
                   eval_metric=["mae"],
                   eval_set=eval_set,
                   verbose=False)
@@ -209,7 +194,7 @@ plt.ylabel('Error')
 plt.title('Error')
 plt.show()
 
-
+"""
 
 
 
@@ -248,7 +233,7 @@ result_df=result_df.append(Forecast_df, ignore_index=True)
 
 result_df.to_csv(path_str+'distribution_forecast.csv')
 
-
+"""
 explainer = shap.TreeExplainer(xgb_regressor)
 shap_values = explainer.shap_values(X)
 
@@ -261,4 +246,4 @@ shap.force_plot(explainer.expected_value,
                 shap_values[idx], 
                 X_test1.iloc[idx,:]) 
 
-"""
+
