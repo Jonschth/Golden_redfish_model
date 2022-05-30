@@ -28,9 +28,12 @@ path_str_gr = 'R:\\Ráðgjöf\\Bláa hagkerfið\\Hafró\\golden_redfish_data\\'
 
 
 X_df = pd.read_csv(path_str+'distribution.csv',sep =",")
+XH_df =pd.read_csv(path_str+'distributionH.csv',sep =",")
 
 
 XX_df=X_df.pivot(index='ar', columns='lengd', values='sum_fjoldi')
+XXH_df=XH_df.pivot(index='ar', columns='lengd', values='sum_fjoldi')
+
 
 # Clean datasets
 XX_df.drop(6.4,axis=1, inplace=True)
@@ -49,18 +52,27 @@ XX_df.drop(14.8,axis=1, inplace=True)
 XX_df.drop(14.9,axis=1, inplace=True)
 
 XX_df.columns = XX_df.columns.astype(int).astype(str)
-
+XXH_df.columns = XX_df.columns.astype(int).astype(str)
+XX_df.fillna(0, inplace=True)     
+XXH_df.fillna(0, inplace=True)   
+XXH_df.drop(2011,inplace=True)
+XXH_df = XXH_df.iloc[1:25,:]
 
 YX = pd.read_csv(path_str+"RED_numbers_at_age.csv", sep=";")
-YY=YX.iloc[15:52,28]
-XX_df.fillna(0, inplace=True)     
+
+YXH= pd.read_csv(path_str+"RED_smh.csv", sep=",")
+YXH['sum']=YXH.iloc[:,3:29].sum(axis=1)*1e6
+YXH=YXH['sum']
+
+
+YY=YX.iloc[26:52,28]
 
 
 
 catch_df = pd.read_csv(path_str+'golden_redfish_catch.csv',sep =";")
 
-XX_df['catch']=catch_df.catch.values
-
+XX_df['catch']=catch_df.catch.values*1000
+XXH_df['catch']=catch_df.catch.iloc[12:36].values*1000
 
 
 def find_per(year, lengd):
@@ -79,6 +91,15 @@ old_year= STARTING_YEAR
 test_size = .3
 seed = 2
 
+XX_2021 = XX_df.loc[2021].to_frame().transpose()
+XXH_2021 = XXH_df.loc[2020].to_frame().transpose()
+
+
+
+
+XX_df=XXH_df
+YY=YXH
+XX_2021 =XXH_2021
 
 
 
@@ -87,7 +108,7 @@ XX_trainR, XX_testR, yY_trainR, yY_testR = train_test_split(XX_df,
                                                     test_size=test_size,
                                                     random_state=seed)
 
-XX_2021 = XX_df.loc[2021].to_frame().transpose()
+
 
 xgb1 = xgb.XGBRegressor(seed=2)
 
@@ -175,7 +196,7 @@ explainer = shap.Explainer(xgb_regressor,XX_df)
 shap_values=explainer(XX_df)
 
 
-shap.plots.waterfall(shap_values[36], max_display=520)
+shap.plots.waterfall(shap_values[23], max_display=520)
 
 shap.summary_plot(shap_values, XX_df,plot_type="layered_violin")
 
