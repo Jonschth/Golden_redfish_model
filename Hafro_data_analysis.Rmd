@@ -2381,7 +2381,7 @@ nv  %>%
   arrange(ar,lengd) %>% 
   summarise(ar, lengd, 
   sum_fjoldi,cum=cumsum(sum_fjoldi), max(cum), per=cum/max(cum)) %>% 
-  write.csv("C:\\Users\\Lenovo\\ownCloud\\Radgjof\\Ráðgjöf\\Bláa hagkerfið\\Hafró\\distribution_output\\distribution.csv",
+  write.csv("R:\\Ráðgjöf\\Bláa hagkerfið\\Hafró\\distribution_output\\distribution.csv",
           row.names = FALSE
           )
 
@@ -2402,7 +2402,7 @@ nv  %>%
 
 ```{r}
 library(readr)
-distribution_forecast <- read_delim("C:/Users/Lenovo/ownCloud/Radgjof/Ráðgjöf/Bláa hagkerfið/Hafró/distribution_output/distribution_forecast.csv", 
+distribution_forecast <- read_delim("R:/Ráðgjöf/Bláa hagkerfið/Hafró/distribution_output/distribution_forecast.csv", 
     ",", escape_double = FALSE, trim_ws = TRUE)
 
 distribution_forecast %>% 

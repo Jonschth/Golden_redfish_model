@@ -17,6 +17,7 @@ from sklearn.metrics import mean_squared_error
 from sklearn.metrics import explained_variance_score
 from sklearn.metrics import r2_score
 import xgboost as xgb
+import seaborn as sbn
 from sklearn.model_selection import GridSearchCV
 
 import shap
@@ -65,7 +66,7 @@ YXH['sum']=YXH.iloc[:,3:29].sum(axis=1)*1e6
 YXH=YXH['sum']
 
 
-YY=YX.iloc[26:52,28]
+YY=YX.iloc[15:52,28]
 
 
 
@@ -73,6 +74,7 @@ catch_df = pd.read_csv(path_str+'golden_redfish_catch.csv',sep =";")
 
 XX_df['catch']=catch_df.catch.values*1000
 XXH_df['catch']=catch_df.catch.iloc[12:36].values*1000
+XXH_df.at[2020, 'catch']=36000 #forcing this number
 
 
 def find_per(year, lengd):
@@ -94,14 +96,16 @@ seed = 2
 XX_2021 = XX_df.loc[2021].to_frame().transpose()
 XXH_2021 = XXH_df.loc[2020].to_frame().transpose()
 
-
+"""
 
 
 XX_df=XXH_df
 YY=YXH
 XX_2021 =XXH_2021
 
+YY=YX.iloc[:52,28]
 
+"""
 
 XX_trainR, XX_testR, yY_trainR, yY_testR = train_test_split(XX_df,
                                                     YY,
@@ -187,16 +191,38 @@ plt.show()
 
 
 #explainer = shap.TreeExplainer(xgb_regressor)
-#"shap_values = explainer.shap_values(XX_df)
-
-#shap.summary_plot(shap_values, XX_df,plot_type="layered_violin")
-
 
 explainer = shap.Explainer(xgb_regressor,XX_df)
+
+shap_values = explainer.shap_values(XX_df)
+
+
+
+shap.summary_plot(shap_values, XX_df,plot_type="layered_violin", )
+
+
+
 shap_values=explainer(XX_df)
 
 
-shap.plots.waterfall(shap_values[23], max_display=520)
+shap.plots.waterfall(shap_values[36], max_display=10)
 
-shap.summary_plot(shap_values, XX_df,plot_type="layered_violin")
+XX_df
+
+"""
+
+import matplotlib.ticker as ticker
+
+x=XX_df.columns[0:56]
+y=XX_df.iloc[23,0:56]
+
+ax  =sbn.barplot(y,x,orient='h', dodge= False )
+
+ax.xaxis.set_major_locator(ticker.MultipleLocator(5))
+ax.xaxis.set_major_formatter(ticker.ScalarFormatter(5))
+
+plt.show()
+
+"""
+
 
