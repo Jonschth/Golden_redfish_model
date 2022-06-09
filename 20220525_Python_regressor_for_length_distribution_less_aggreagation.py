@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sat Dec 25 12:23:26 2021
+Created on Sat Dec 25 12:23:26 y_
 
 @author: jst
 """
-
 
 import pandas as pd
 import numpy as np
 import math
 from matplotlib import pyplot as plt
+from sklearn.preprocessing import StandardScaler
 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error
@@ -17,10 +17,33 @@ from sklearn.metrics import mean_squared_error
 from sklearn.metrics import explained_variance_score
 from sklearn.metrics import r2_score
 import xgboost as xgb
-import seaborn as sbn
+# import seaborn as sbn
 from sklearn.model_selection import GridSearchCV
 
 import shap
+
+
+XX_2022_dict={"x":[5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60, 'catch'],
+              "y":[0,0,1.73,2.796,3.405,2.969,3.761,2.299,2.299,1.805,1.191,1.724,1.724,1.724,2.24,2.299,2.299,1.737,2.21,2.299,2.299,2.902,3.448,3.448,3.448,2.874,2.939,3.448,3.448,7.011,15.238,40.273,68.759,74.023,78.7,51.832,37.509,28.046,20.581,12.794,8.02,5.445,3.815,2.938,2.38,0,0,0,0,0,0,0,0,0,0,0,0]}
+sum_2022_y=sum(XX_2022_dict['y'])
+MEASUREMENT_QTY_2022 = 145983 * 168755 / 209102
+CATCH_2022 = 34000
+XX_2022_df = pd.DataFrame.from_dict(XX_2022_dict) 
+XX_2022_df['z']=XX_2022_df['y']*MEASUREMENT_QTY_2022/sum_2022_y
+XX_2022_df.z.at[56]=CATCH_2022
+XX_2022_df.index=[0]*len(XX_2022_df)
+XX_2022 = XX_2022_df.drop(columns='y').pivot(index=None,columns='x', values='z')
+
+
+
+XXH_2021_dict= {"x":[16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54],
+ "y":[0.125,0.125,0.201,0.708,0.457,0.374,0.374,0.453,0.811,0.201,0.943,0.667,0.499,0.499,1.123,1.123,1.74,2.121,3.679,9.917,23.615,39.645,46.734,50.748,43.742,31.137,30.46,14.397,10.982,6.198,3.41,1.929,0.883,0.748,0.748,0.748,0.844,1.097,0.815]}
+
+
+
+XXH_2021_df = pd.DataFrame.from_dict(XXH_2021_dict) 
+
+
 
 
 path_str = 'R:\\Ráðgjöf\\Bláa hagkerfið\\Hafró\\distribution_output\\'
@@ -53,8 +76,16 @@ XX_df.drop(14.8,axis=1, inplace=True)
 XX_df.drop(14.9,axis=1, inplace=True)
 
 XX_df.columns = XX_df.columns.astype(int).astype(str)
+
+
+
 XXH_df.columns = XX_df.columns.astype(int).astype(str)
 XX_df.fillna(0, inplace=True)     
+
+
+
+
+
 XXH_df.fillna(0, inplace=True)   
 XXH_df.drop(2011,inplace=True)
 XXH_df = XXH_df.iloc[1:25,:]
@@ -77,11 +108,6 @@ XXH_df['catch']=catch_df.catch.iloc[12:36].values*1000
 XXH_df.at[2020, 'catch']=36000 #forcing this number
 
 
-def find_per(year, lengd):
-    for index, row in X_df.iterrows():
-        if row[0]==year and row[1]==lengd: 
-            return row[5]
-
 
 
 STARTING_YEAR = 1985
@@ -90,7 +116,7 @@ old_year= STARTING_YEAR
 
 
 
-test_size = .3
+test_size = .15
 seed = 2
 
 XX_2021 = XX_df.loc[2021].to_frame().transpose()
@@ -105,7 +131,14 @@ XX_2021 =XXH_2021
 
 YY=YX.iloc[:52,28]
 
+
+
+
 """
+
+
+
+
 
 XX_trainR, XX_testR, yY_trainR, yY_testR = train_test_split(XX_df,
                                                     YY,
@@ -113,6 +146,10 @@ XX_trainR, XX_testR, yY_trainR, yY_testR = train_test_split(XX_df,
                                                     random_state=seed)
 
 
+scaler = StandardScaler().fit(XX_trainR)
+X_train_norm = scaler.transform(XX_trainR)
+X_norm = scaler.transform(XX_df)
+X_test_norm = scaler.transform(XX_testR)
 
 xgb1 = xgb.XGBRegressor(seed=2)
 
@@ -137,36 +174,40 @@ print(xgb_regressor.best_score_)
 
 print(xgb_regressor.best_params_)
 
-y_pred = xgb_regressor.predict(XX_testR)
-
-
-y_pred_xgb = xgb_regressor.predict(XX_2021)
-
-
-
-print("mae", mean_absolute_error(yY_testR, y_pred))
-print("rmse", math.sqrt(mean_squared_error(yY_testR, y_pred)))
-print("r2", r2_score(yY_testR, y_pred))
-print("evs", explained_variance_score(yY_testR, y_pred))
-
-
-
-
-predictions = [round(value) for value in y_pred]
-
-Forecast = np.vstack((y_pred_xgb))
-
 params = xgb_regressor.best_params_
-
-
-xgb_regressor = xgb.XGBRegressor(**params)
 eval_set = [(XX_trainR, yY_trainR), (XX_testR, yY_testR)]
+xgb_regressor = xgb.XGBRegressor(**params)
 
 xgb_regressor.fit(XX_trainR,
                   yY_trainR,
                   eval_metric=["mae"],
                   eval_set=eval_set,
                   verbose=False)
+
+
+
+y_pred_test = xgb_regressor.predict(XX_testR)
+
+
+y_pred_2021 = xgb_regressor.predict(XX_2021)
+y_pred_2022 = xgb_regressor.predict(XX_2022)
+
+
+
+
+print("mae", mean_absolute_error(yY_testR, y_pred_test))
+print("rmse", math.sqrt(mean_squared_error(yY_testR, y_pred_test)))
+print("r2", r2_score(yY_testR, y_pred_test))
+print("evs", explained_variance_score(yY_testR, y_pred_test))
+
+
+
+
+predictions = [round(value) for value in y_pred_test]
+
+
+
+"""
 
 results = xgb_regressor.evals_result()
 epochs = len(results['validation_0']['mae'])
@@ -184,7 +225,7 @@ plt.title('Error')
 plt.show()
 
 
-
+"""
 
 
 
