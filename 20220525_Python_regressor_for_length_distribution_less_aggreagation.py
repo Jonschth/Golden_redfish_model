@@ -30,7 +30,7 @@ MEASUREMENT_QTY_2022 = 145983 * 168755 / 209102
 CATCH_2022 = 34000
 XX_2022_df = pd.DataFrame.from_dict(XX_2022_dict) 
 XX_2022_df['z']=XX_2022_df['y']*MEASUREMENT_QTY_2022/sum_2022_y
-XX_2022_df.z.at[56]=CATCH_2022
+XX_2022_df.z.at[56]=-CATCH_2022
 XX_2022_df.index=[0]*len(XX_2022_df)
 XX_2022 = XX_2022_df.drop(columns='y').pivot(index=None,columns='x', values='z')
 
@@ -103,9 +103,9 @@ YY=YX.iloc[15:52,28]
 
 catch_df = pd.read_csv(path_str+'golden_redfish_catch.csv',sep =";")
 
-XX_df['catch']=catch_df.catch.values*1000
-XXH_df['catch']=catch_df.catch.iloc[12:36].values*1000
-XXH_df.at[2020, 'catch']=36000 #forcing this number
+XX_df['catch']=catch_df.catch.values*-1000
+XXH_df['catch']=catch_df.catch.iloc[12:36].values*-1000
+XXH_df.at[2020, 'catch']=-36000 #forcing this number
 
 
 
@@ -116,7 +116,7 @@ old_year= STARTING_YEAR
 
 
 
-test_size = .15
+test_size = .35
 seed = 2
 
 XX_2021 = XX_df.loc[2021].to_frame().transpose()
@@ -157,12 +157,12 @@ parameters = {
     'nthread': [0],
     'objective': ['reg:squarederror'],
     'eval_metric': ["error"],
-    'learning_rate': [0.01, 0.1, 0.05],
-    'max_depth': [6],
+    'learning_rate': [ 0.3 ,0.4, 0.5, 0.6],
+    'max_depth': [3,6, 7],
     'min_child_weight': [1, 3, 5, 7],
-    'subsample': [0.9],
-    'colsample_bytree': [0.7],
-    'n_estimators': [100, 200, 300, 1000]
+    'subsample': [0.9, 0.7, 0.6],
+    'colsample_bytree': [0.7, 0.8,0.9],
+    'n_estimators': [100, 200, 300]
 }
 
 xgb_regressor = GridSearchCV(xgb1, parameters, cv=2, n_jobs=5, verbose=5)
@@ -202,6 +202,13 @@ print("evs", explained_variance_score(yY_testR, y_pred_test))
 
 
 
+
+x_ax = range(len(yY_testR))
+plt.scatter(x_ax, yY_testR, s=5, color="blue", label="original")
+plt.plot(x_ax, y_pred_test, lw=0.8, color="red", label="predicted")
+plt.grid(True)
+plt.legend()
+plt.show()
 
 predictions = [round(value) for value in y_pred_test]
 
