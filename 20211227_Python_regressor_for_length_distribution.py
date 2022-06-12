@@ -113,7 +113,7 @@ line_int=0
 X_test1=pd.DataFrame()
 
 for length in range(5,61):
-    X_test1.at[line_int,1]=int(2023)
+    X_test1.at[line_int,1]=int(2022)
     X_test1.at[line_int,2]=int(length) 
     X_test1.at[line_int,3]=int(72) 
     
@@ -236,7 +236,7 @@ Forecast_df['svr'] = pd.Series(
     index=Forecast_df.index)
 Forecast_df
 
-Forecast_df['ar']=2023
+Forecast_df['ar']=2022
 
 length_df=pd.DataFrame(np.arange(5,61))
 length_df.columns=['lengd']

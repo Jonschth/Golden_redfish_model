@@ -253,7 +253,7 @@ shap.summary_plot(shap_values, XX_df,plot_type="layered_violin", )
 shap_values=explainer(XX_df)
 
 
-shap.plots.waterfall(shap_values[36], max_display=10)
+shap.plots.waterfall(shap_values[36], max_display=40)
 
 XX_df
 
