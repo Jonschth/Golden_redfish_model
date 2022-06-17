@@ -160,6 +160,22 @@ print(xgb_regressor.best_score_)
 
 print(xgb_regressor.best_params_)
 
+
+
+params = xgb_regressor.best_params_
+eval_set = [(X_trainR, y_trainR), (X_testR, y_testR)]
+xgb_regressor = xgb.XGBRegressor(**params)
+
+xgb_regressor.fit(X_trainR,
+                  y_trainR,
+                  eval_metric=["mae"],
+                  eval_set=eval_set,
+                  verbose=False)
+
+
+
+y_pred_test = xgb_regressor.predict(X_testR)
+
 y_pred = xgb_regressor.predict(X_testR)
 y_pred_xgb = xgb_regressor.predict(X_test1)
 
@@ -180,10 +196,29 @@ print("r2", r2_score(y_testR, y_pred))
 print("evs", explained_variance_score(y_testR, y_pred))
 
 
-
+x_ax = range(len(y_testR))
+plt.scatter(x_ax, y_testR, s=5, color="blue", label="original")
+plt.plot(x_ax, y_pred_test, lw=0.8, color="red", label="predicted")
+plt.grid(True)
+plt.legend()
+plt.show()
 
 #y_pred_svm = gs.predict(X_test1)
 predictions = [round(value) for value in y_pred]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 Forecast = np.vstack((y_pred_xgb))
 Forecast_df = pd.DataFrame(Forecast, columns=["xgb"], index=X_test1.index)
