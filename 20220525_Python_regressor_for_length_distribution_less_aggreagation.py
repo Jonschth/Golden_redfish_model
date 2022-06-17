@@ -7,6 +7,7 @@ Created on Sat Dec 25 12:23:26 y_
 
 import pandas as pd
 import math
+import seaborn as sns
 from matplotlib import pyplot as plt
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
@@ -118,6 +119,7 @@ old_year= STARTING_YEAR
 
 
 test_size = .25
+
 seed = 2
 
 XX_2021 = XX_df.loc[2021].to_frame().transpose()
@@ -199,9 +201,13 @@ print("evs", explained_variance_score(yY_testR, y_pred_test))
 
 
 
-x_ax = range(len(yY_testR))
+
+x_ax= range(len(yY_testR))
+
 plt.scatter(x_ax, yY_testR, s=5, color="blue", label="original")
 plt.plot(x_ax, y_pred_test, lw=0.8, color="red", label="predicted")
+plt.xticks(x_ax,XX_testR.index)
+
 plt.grid(True)
 plt.legend()
 plt.show()
