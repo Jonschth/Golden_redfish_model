@@ -25,14 +25,18 @@ from sklearn.preprocessing import StandardScaler
 import shap
 
 
+import warnings
+
+def fxn():
+    warnings.warn("deprecated", DeprecationWarning)
+
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    fxn()
+
+
 path_str = 'R:\\Ráðgjöf\\Bláa hagkerfið\\Hafró\\distribution_output\\'
 path_str_gr = 'R:\\Ráðgjöf\\Bláa hagkerfið\\Hafró\\golden_redfish_data\\'
-
-
-
-
-
-
 
 
 X_df = pd.read_csv(path_str+'distribution.csv',sep =",")
@@ -113,9 +117,10 @@ line_int=0
 X_test1=pd.DataFrame()
 
 for length in range(5,61):
-    X_test1.at[line_int,1]=int(2022)
+    
+    X_test1.at[line_int,1]=int(2025)
     X_test1.at[line_int,2]=int(length) 
-    X_test1.at[line_int,3]=int(72) 
+    X_test1.at[line_int,3]=int(94) 
     
     line_int+=1
     
@@ -263,7 +268,7 @@ Forecast_df['svr'] = pd.Series(
     index=Forecast_df.index)
 Forecast_df
 
-Forecast_df['ar']=2022
+Forecast_df['ar']=2025
 
 length_df=pd.DataFrame(np.arange(5,61))
 length_df.columns=['lengd']
@@ -293,3 +298,4 @@ shap.force_plot(explainer.expected_value,
                 X_test1.iloc[idx,:]) 
 
 
+plt.show()
