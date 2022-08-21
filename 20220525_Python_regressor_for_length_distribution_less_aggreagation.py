@@ -23,13 +23,14 @@ import xgboost as xgb
 from sklearn.model_selection import GridSearchCV
 # import shap
 import json
+import shap
 
 
 path_str = 'R:\\Ráðgjöf\\Bláa hagkerfið\\Hafró\\distribution_output\\'
 path_str_gr = 'R:\\Ráðgjöf\\Bláa hagkerfið\\Hafró\\golden_redfish_data\\'
 path_str_mo = 'R:\\Ráðgjöf\\Maris Optimum/Golden_redfish_model\\'
 
-fractile = '094'
+fractile = '098'
 
 
 X_df = pd.read_csv(path_str+'distribution'+fractile+'.csv',
@@ -127,16 +128,16 @@ parameters = {
     'eval_metric': ["error"],
     'learning_rate': [.4, .5, .6],
     'max_depth': [3, 4, 5],
-    'min_child_weight': [2, 3, 4],
+    'min_child_weight': [3, 4, 5],
     'subsample': [0.6, 0.7],
-    'colsample_bytree': [.4, .5, .6],
+    'colsample_bytree': [.5, .6, .7],
     'n_estimators': [35]
 }
 test_size = .25
 seed = 4
 result_dict = {'fjoldi': [], 'mae': [], 'rmse': [], 'r2': [], 'evs': []}
 interval_int = 5000000
-
+xgb1 = xgb.XGBRegressor(seed)
 
 for add_int in range(0, 200000000, interval_int):
 
@@ -152,7 +153,7 @@ for add_int in range(0, 200000000, interval_int):
 
     '''
 
-    xgb1 = xgb.XGBRegressor(seed)
+ 
     xgb_regressor = GridSearchCV(xgb1,
                                  parameters,
                                  cv=2,
@@ -238,75 +239,79 @@ print((pca.explained_variance_ratio_))
 print(pca.singular_values_)
 
 
-'''
-x_ax= range(len(y_test))
-plt.scatter(x_ax,
-            y_test,
-            s=5,
-            color="blue",
-            label="original")
-plt.plot(x_ax,
-         y_pred_test,
-         lw=0.8,
-         color="red",
-         label="predicted")
-plt.xticks(x_ax,
-           X_test.index,
-           rotation = 45)
-plt.grid(True)
-plt.legend()
-plt.show()
 
-results = xgb_regressor.evals_result()
-epochs = len(results['validation_0']['mae'])
-x_axis = range(0, epochs)
-fig, ax = plt.subplots()
-plt.grid(True, which='major')
-ax.plot(x_axis, results['validation_0']['mae'],
-        label='Train')
-ax.plot(x_axis, results['validation_1']['mae'],
-        label='Test')
-ax.legend()
-plt.ylabel('Error')
-plt.title('Error')
-plt.show()
-
-#explainer = shap.TreeExplainer(xgb_regressor)
-
-
-
-explainer = shap.TreeExplainer(xgb_regressor)
-
-shap_values = explainer.shap_values(XX_df.iloc[16:,:])
-
-shap.summary_plot(shap_values,
-                  XX_df.iloc[16:,:],
-                  plot_type="layered_violin",
-                  max_display=10)
-
-shap_values = explainer(XX_df.iloc[16:,:])
-shap.plots.waterfall(shap_values[21])
+def fitting_plot(y_test, y_pred_test, X_test, xgb_regressor):
+    x_ax= range(len(y_test))
+    plt.scatter(x_ax,
+                y_test,
+                s=5,
+                color="blue",
+                label="original")
+    plt.plot(x_ax,
+             y_pred_test,
+             lw=0.8,
+             color="red",
+             label="predicted")
+    plt.xticks(x_ax,
+               X_test.index,
+               rotation = 45)
+    plt.grid(True)
+    plt.legend()
+    plt.show()
+    
+    
+def error_plot(regressor):
+    results = regressor.evals_result()
+    epochs = len(results['validation_0']['mae'])
+    x_axis = range(0, epochs)
+    fig, ax = plt.subplots()
+    plt.grid(True, which='major')
+    ax.plot(x_axis, results['validation_0']['mae'],
+            label='Train')
+    ax.plot(x_axis, results['validation_1']['mae'],
+            label='Test')
+    ax.legend()
+    plt.ylabel('Error')
+    plt.title('Error')
+    plt.show()
 
 
-X50 = shap.utils.sample(XX_df, 50)
-explainer = shap.Explainer(xgb_regressor.predict, X50)
-shap_values = explainer(X50)
+def shap_calculations(regressor,XX_df):
+    
+    
+    explainer = shap.TreeExplainer(regressor)
+    
+    shap_values = explainer.shap_values(XX_df.iloc[16:,:])
+    
+    shap.summary_plot(shap_values,
+                      XX_df.iloc[16:,:],
+                      plot_type="layered_violin",
+                      max_display=10)
+    
+    shap_values = explainer(XX_df.iloc[16:,:])
+    shap.plots.waterfall(shap_values[21])
+    
+    
+    X50 = shap.utils.sample(XX_df, 50)
+    explainer = shap.Explainer(regressor.predict, X50)
+    shap_values = explainer(X50)
+    
+    
+    sample_ind = 33
+    shap.partial_dependence_plot(
+        "1035", regressor.predict, X50, model_expected_value=True,
+        feature_expected_value=True, 
+        ice=False,
+        shap_values=shap_values[sample_ind:sample_ind+1,:])
+    
+    
+    
+    
+    explainer = shap.TreeExplainer(regressor)
+    shap_values = explainer.shap_values(X50)
+    shap.dependence_plot(
+        "catch",
+        shap_values,
+        X50)
 
 
-sample_ind = 37
-shap.partial_dependence_plot(
-    "1035", xgb_regressor.predict, X50, model_expected_value=True,
-    feature_expected_value=True, ice=False,
-    shap_values=shap_values[sample_ind:sample_ind+1,:])
-
-
-
-
-explainer = shap.TreeExplainer(xgb_regressor)
-shap_values = explainer.shap_values(X50)
-shap.dependence_plot(
-    "catch",
-    shap_values,
-    X50)
-
-'''
