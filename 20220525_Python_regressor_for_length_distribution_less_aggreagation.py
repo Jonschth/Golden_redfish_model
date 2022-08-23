@@ -27,13 +27,14 @@ import shap
 
 
 
-path_str = 'R:\\Ráðgjöf\\Bláa hagkerfið\\Hafró\\distribution_output\\'
-path_str_gr = 'R:\\Ráðgjöf\\Bláa hagkerfið\\Hafró\\golden_redfish_data\\'
-path_str_mo = 'R:\\Ráðgjöf\\Maris Optimum/Golden_redfish_model\\'
 
-fractile = '098'
 
-def get_data(fractile,path_str, path_str_mo):
+
+
+def get_data(fractile):
+    path_str = 'R:\\Ráðgjöf\\Bláa hagkerfið\\Hafró\\distribution_output\\'
+    path_str_gr = 'R:\\Ráðgjöf\\Bláa hagkerfið\\Hafró\\golden_redfish_data\\'
+    path_str_mo = 'R:\\Ráðgjöf\\Maris Optimum/Golden_redfish_model\\'
     X_df = pd.read_csv(path_str+'distribution'+fractile+'.csv',
                    sep=",")
     catch_df = pd.read_csv(path_str+'golden_redfish_catch.csv',
@@ -123,126 +124,6 @@ def get_data(fractile,path_str, path_str_mo):
     # end autumnal data
     return (XX_df, YY)
 
-(X,y) = get_data(fractile,path_str, path_str_mo)
-
-parameters = {
-    'nthread': [0],
-    'objective': ['reg:squarederror'],
-    'eval_metric': ["error"],
-    'learning_rate': [.4, .5, .6],
-    'max_depth': [3, 4, 5],
-    'min_child_weight': [3, 4, 5],
-    'subsample': [0.6, 0.7],
-    'colsample_bytree': [.5, .6, .7],
-    'n_estimators': [35]
-}
-test_size = .25
-seed = 4
-result_dict = {'fjoldi': [], 'mae': [], 'rmse': [], 'r2': [], 'evs': []}
-interval_int = 5000000
-xgb1 = xgb.XGBRegressor(seed)
-
-for add_int in range(0, 200000000, interval_int):
-
-    X_train, X_test, y_train, y_test = train_test_split(X.iloc[14:, :],
-                                                        y.iloc[14:],
-                                                        test_size=test_size,
-                                                        random_state=seed)
-    '''
-    X_train = XX_df.loc[:2010,:]
-    X_test = XX_df.loc[2011:,:]
-    y_train = YY[:26]
-    y_test = YY[26:]
-
-    '''
-
- 
-    xgb_regressor = GridSearchCV(xgb1,
-                                 parameters,
-                                 cv=2,
-                                 n_jobs=5,
-                                 verbose=0)
-
-    xgb_regressor.fit(X,
-                      y)
-
-    print(json.dumps(xgb_regressor.best_params_, sort_keys=False, indent=4))
-
-    params = xgb_regressor.best_params_
-    eval_set = [(X_train, y_train), (X_test, y_test)]
-    xgb_regressor = xgb.XGBRegressor(**params)
-
-    xgb_regressor.fit(X_train,
-                      y_train,
-                      eval_metric=["mae"],
-                      eval_set=eval_set,
-                      verbose=False)
-
-    y_pred_test = xgb_regressor.predict(X_test)
-
-    print('2022 stock size: {:,.0f}'.format(y[52]))
-    print('mae: {:,.0f}'.format(mean_absolute_error(y_test, y_pred_test)))
-    print('rmse:{:,.0f}'.format(math.sqrt(mean_squared_error(y_test,
-                                                             y_pred_test))))
-    print('r2: {:,.2f}'.format(r2_score(y_test, y_pred_test)))
-    print('evs: {:,.2f}'.format(explained_variance_score(y_test,
-                                                         y_pred_test)))
-
-    result_dict['fjoldi'].append(y[52])
-    result_dict['mae'].append(mean_absolute_error(y_test,
-                                                  y_pred_test))
-    result_dict['rmse'].append(math.sqrt(mean_squared_error(y_test,
-                                                            y_pred_test)))
-    result_dict['r2'].append(r2_score(y_test,
-                                      y_pred_test))
-    result_dict['evs'].append(explained_variance_score(y_test,
-                                                       y_pred_test))
-
-    y[51] += interval_int
-    y[52] += interval_int
-
-
-min_value = min(result_dict['mae'])
-max_value = max(result_dict['evs'])
-min_index = result_dict['mae'].index(min_value)
-max_index = result_dict['evs'].index(max_value)
-
-print(min_index, max_index, result_dict['fjoldi'][17])
-
-result_dict['x'] = range(343, 543, int(interval_int/1e6))
-fig, ax = plt.subplots()
-sns.set(style='whitegrid',
-        palette='pastel', )
-sns.lineplot(x='x',
-             y='evs',
-             data=result_dict,
-             color="red",
-             ax=ax)
-ax.set_xlabel('size of stock in millions')
-ax.set_ylabel('explainable variance, red')
-ax.set(title='school fractile:'+fractile+'\n'+'1996-2022')
-ax.set_ylim(0, 1)
-ax2 = ax.twinx()
-sns.lineplot(x='x',
-             y='mae',
-             data=result_dict,
-             color='blue',
-             markers=True, ax=ax2)
-ax2.set_ylabel('mean average error, blue')
-
-
-# Checking for prinipcal components
-scaler = StandardScaler()
-X_sca = scaler.fit_transform(XX_df)
-
-
-pca = PCA(n_components=18)
-pca.fit(X_sca)
-print((pca.explained_variance_ratio_))
-print(pca.singular_values_)
-
-
-
 def fitting_plot(y_test, y_pred_test, X_test, xgb_regressor):
     x_ax= range(len(y_test))
     plt.scatter(x_ax,
@@ -278,7 +159,6 @@ def error_plot(regressor):
     plt.title('Error')
     plt.show()
 
-
 def shap_calculations(regressor,XX_df):
     
     
@@ -307,14 +187,132 @@ def shap_calculations(regressor,XX_df):
         ice=False,
         shap_values=shap_values[sample_ind:sample_ind+1,:])
     
-    
-    
-    
+
     explainer = shap.TreeExplainer(regressor)
     shap_values = explainer.shap_values(X50)
     shap.dependence_plot(
         "catch",
         shap_values,
         X50)
+
+
+def XGB_over_possible_values(X,y, fractile):
+    parameters = {
+        'nthread': [0],
+        'objective': ['reg:squarederror'],
+        'eval_metric': ["error"],
+        'learning_rate': [.4, .5, .6],
+        'max_depth': [3, 4, 5],
+        'min_child_weight': [3, 4, 5],
+        'subsample': [0.6, 0.7],
+        'colsample_bytree': [.5, .6, .7],
+        'n_estimators': [35]
+    }
+    test_size = .25
+    seed = 4
+    result_dict = {'fjoldi': [], 'mae': [], 'rmse': [], 'r2': [], 'evs': []}
+    interval_int = 5000000
+    xgb1 = xgb.XGBRegressor(seed)
+    
+    for add_int in range(0, 200000000, interval_int):
+    
+        X_train, X_test, y_train, y_test = train_test_split(X.iloc[14:, :],
+                                                            y.iloc[14:],
+                                                            test_size=test_size,
+                                                            random_state=seed)
+    
+        xgb_regressor = GridSearchCV(xgb1,
+                                     parameters,
+                                     cv=2,
+                                     n_jobs=5,
+                                     verbose=0)
+    
+        xgb_regressor.fit(X,
+                          y)
+    
+        print(json.dumps(xgb_regressor.best_params_, sort_keys=False, indent=4))
+    
+        params = xgb_regressor.best_params_
+        eval_set = [(X_train, y_train), (X_test, y_test)]
+        xgb_regressor = xgb.XGBRegressor(**params)
+    
+        xgb_regressor.fit(X_train,
+                          y_train,
+                          eval_metric=["mae"],
+                          eval_set=eval_set,
+                          verbose=False)
+    
+        y_pred_test = xgb_regressor.predict(X_test)
+    
+        print('2022 stock size: {:,.0f}'.format(y[52]))
+        print('mae: {:,.0f}'.format(mean_absolute_error(y_test, y_pred_test)))
+        print('rmse:{:,.0f}'.format(math.sqrt(mean_squared_error(y_test,
+                                                                 y_pred_test))))
+        print('r2: {:,.2f}'.format(r2_score(y_test, y_pred_test)))
+        print('evs: {:,.2f}'.format(explained_variance_score(y_test,
+                                                             y_pred_test)))
+    
+        result_dict['fjoldi'].append(y[52])
+        result_dict['mae'].append(mean_absolute_error(y_test,
+                                                      y_pred_test))
+        result_dict['rmse'].append(math.sqrt(mean_squared_error(y_test,
+                                                                y_pred_test)))
+        result_dict['r2'].append(r2_score(y_test,
+                                          y_pred_test))
+        result_dict['evs'].append(explained_variance_score(y_test,
+                                                           y_pred_test))
+    
+        y[51] += interval_int
+        y[52] += interval_int
+    
+    
+    min_value = min(result_dict['mae'])
+    max_value = max(result_dict['evs'])
+    min_index = result_dict['mae'].index(min_value)
+    max_index = result_dict['evs'].index(max_value)
+    
+    print(min_index, max_index, result_dict['fjoldi'][17])
+    
+    result_dict['x'] = range(343, 543, int(interval_int/1e6))
+    fig, ax = plt.subplots()
+    sns.set(style='whitegrid',
+            palette='pastel', )
+    sns.lineplot(x='x',
+                 y='evs',
+                 data=result_dict,
+                 color="red",
+                 ax=ax)
+    ax.set_xlabel('size of stock in millions')
+    ax.set_ylabel('explainable variance, red')
+    ax.set(title='school fractile:'+fractile+'\n'+'1996-2022')
+    ax.set_ylim(0, 1)
+    ax2 = ax.twinx()
+    sns.lineplot(x='x',
+                 y='mae',
+                 data=result_dict,
+                 color='blue',
+                 markers=True, ax=ax2)
+    ax2.set_ylabel('mean average error, blue')
+
+def main():
+    fractile = '098'
+    (X,y) = get_data(fractile)
+    XGB_over_possible_values(X,y, fractile)
+    
+    # Checking for prinipcal components
+    scaler = StandardScaler()
+    X_sca = scaler.fit_transform(X)
+    
+    
+    pca = PCA(n_components=18)
+    pca.fit(X_sca)
+    print((pca.explained_variance_ratio_))
+    print(pca.singular_values_)
+
+
+if __name__ == "__main__":
+    main()
+
+
 
 
