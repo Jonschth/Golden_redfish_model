@@ -20,6 +20,7 @@ from sklearn.metrics import r2_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 import xgboost as xgb
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import GridSearchCV
 # import shap
 import json
@@ -33,7 +34,6 @@ import shap
 
 def get_data(fractile):
     path_str = 'R:\\Ráðgjöf\\Bláa hagkerfið\\Hafró\\distribution_output\\'
-    path_str_gr = 'R:\\Ráðgjöf\\Bláa hagkerfið\\Hafró\\golden_redfish_data\\'
     path_str_mo = 'R:\\Ráðgjöf\\Maris Optimum/Golden_redfish_model\\'
     X_df = pd.read_csv(path_str+'distribution'+fractile+'.csv',
                    sep=",")
@@ -109,6 +109,7 @@ def get_data(fractile):
     
     XXH_2021_dict = {"x": [16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54],
                      "y": [0.125,0.125,0.201,0.708,0.457,0.374,0.374,0.453,0.811,0.201,0.943,0.667,0.499,0.499,1.123,1.123,1.74,2.121,3.679,9.917,23.615,39.645,46.734,50.748,43.742,31.137,30.46,14.397,10.982,6.198,3.41,1.929,0.883,0.748,0.748,0.748,0.844,1.097,0.815]}
+    
     sum_2021H_y = sum(XXH_2021_dict['y'])
     
     for i in range(16, 60):
@@ -118,6 +119,7 @@ def get_data(fractile):
     
     # begin autumnal data
     '''
+    
     XX_df=XXH_df.iloc[1:, :]
     YY=(YY[14:])
     '''
@@ -196,7 +198,7 @@ def shap_calculations(regressor,XX_df):
         X50)
 
 
-def XGB_over_possible_values(X,y, fractile):
+def regression_over_possible_values_XGB(X,y, interval_int):
     parameters = {
         'nthread': [0],
         'objective': ['reg:squarederror'],
@@ -211,7 +213,7 @@ def XGB_over_possible_values(X,y, fractile):
     test_size = .25
     seed = 4
     result_dict = {'fjoldi': [], 'mae': [], 'rmse': [], 'r2': [], 'evs': []}
-    interval_int = 5000000
+
     xgb1 = xgb.XGBRegressor(seed)
     
     for add_int in range(0, 200000000, interval_int):
@@ -264,16 +266,57 @@ def XGB_over_possible_values(X,y, fractile):
     
         y[51] += interval_int
         y[52] += interval_int
-    
-    
+    return result_dict
+
+
     min_value = min(result_dict['mae'])
     max_value = max(result_dict['evs'])
     min_index = result_dict['mae'].index(min_value)
     max_index = result_dict['evs'].index(max_value)
     
-    print(min_index, max_index, result_dict['fjoldi'][17])
+    print(min_index, max_index, result_dict['fjoldi'][min_index])
+
+def regression_over_possible_values_random_forest(X, y, interval_int):
+    test_size = .25
+    seed = 4
+    result_dict = {'fjoldi': [], 'mae': [], 'rmse': [], 'r2': [], 'evs': []}
+    
+
+    forest = RandomForestRegressor(n_estimators=35,
+        criterion='absolute_error',
+        random_state=1,
+        n_jobs=-1)
+        
+    for add_int in range(0, 200000000, interval_int):
+
+        X_train, X_test, y_train, y_test = train_test_split(X.iloc[14:, :],
+                                                    y.iloc[14:],
+                                                    test_size=test_size,
+                                                    random_state=seed)
+            
+
+        forest.fit(X_train, y_train)
+        
+        y_pred_test = forest.predict(X_test)
+        
+        result_dict['fjoldi'].append(y[52])
+        result_dict['mae'].append(mean_absolute_error(y_test,
+                                                  y_pred_test))
+        result_dict['rmse'].append(math.sqrt(mean_squared_error(y_test,
+                                                            y_pred_test)))
+        result_dict['r2'].append(r2_score(y_test,
+                                      y_pred_test))
+        result_dict['evs'].append(explained_variance_score(y_test,
+                                                           y_pred_test))
+
+        y[51] += interval_int
+        y[52] += interval_int
+    return result_dict
+
+def plot_result_range(result_dict, interval_int, fractile):
     
     result_dict['x'] = range(343, 543, int(interval_int/1e6))
+    print(result_dict)
     fig, ax = plt.subplots()
     sns.set(style='whitegrid',
             palette='pastel', )
@@ -282,22 +325,31 @@ def XGB_over_possible_values(X,y, fractile):
                  data=result_dict,
                  color="red",
                  ax=ax)
-    ax.set_xlabel('size of stock in millions')
-    ax.set_ylabel('explainable variance, red')
-    ax.set(title='school fractile:'+fractile+'\n'+'1996-2022')
-    ax.set_ylim(0, 1)
+    ax.set(xlabel = 'size of stock in millions',
+           ylabel = 'explainable variance, red',
+           title='school fractile:'+fractile+'\n'+'1996-2022',
+           ylim=(0,1))
+    
     ax2 = ax.twinx()
     sns.lineplot(x='x',
                  y='mae',
                  data=result_dict,
                  color='blue',
                  markers=True, ax=ax2)
-    ax2.set_ylabel('mean average error, blue')
+    ax2.set(ylabel = 'mean average error, blue')
+
+
 
 def main():
     fractile = '098'
+    interval_int = 5000000
     (X,y) = get_data(fractile)
-    XGB_over_possible_values(X,y, fractile)
+    result_dict = regression_over_possible_values_XGB(X, y, interval_int)
+    plot_result_range(result_dict, interval_int, fractile )
+    result_dict = regression_over_possible_values_random_forest(X, y, interval_int)
+    plot_result_range(result_dict, interval_int, fractile)
+    
+    
     
     # Checking for prinipcal components
     scaler = StandardScaler()
