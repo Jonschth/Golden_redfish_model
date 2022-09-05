@@ -5,7 +5,13 @@ Created on Sat Dec 25 12:23:26 y_
 @author: jst
 """
 
+
 import pandas as pd
+
+import warnings
+warnings.filterwarnings("ignore")
+
+
 import math
 # import numpy as np
 import seaborn as sns
@@ -25,6 +31,8 @@ from sklearn.model_selection import GridSearchCV
 # import shap
 import json
 import shap
+
+
 
 
 
@@ -161,7 +169,7 @@ def error_plot(regressor):
     plt.title('Error')
     plt.show()
 
-def shap_calculations(regressor,XX_df):
+def shap_calculations_xgb(regressor,XX_df):
     
     
     explainer = shap.TreeExplainer(regressor)
@@ -174,11 +182,37 @@ def shap_calculations(regressor,XX_df):
                       max_display=10)
     
     shap_values = explainer(XX_df.iloc[16:,:])
-    shap.plots.waterfall(shap_values[21])
+    shap.waterfall_plot(shap_values[21])
     
     
+def shap_calculations_rf(regressor,XX_df):
+        
+    X = XX_df.iloc[16:,:]
+    explainer = shap.TreeExplainer(regressor)
+    
+    shap_values = explainer.shap_values(X)
+    
+    shap.summary_plot(shap_values,
+                      X,
+                      plot_type="layered_violin",
+                      max_display=10)
+    
+    class helper_object():
+        def __init__(self, i):
+            self.base_values = shap_values.base_values[i][0]
+            self.data = shap_values.data[i]
+            self.feature_names = X.columns.to_list()
+            self.values = shap_values.values[i]
+    shap_values = explainer(X)
+    
+    shap.waterfall_plot(helper_object(21))
+    
+    
+    
+    
+    '''
     X50 = shap.utils.sample(XX_df, 50)
-    explainer = shap.Explainer(regressor.predict, X50)
+    explainer = shap.TreeExplainer(regressor.predict, X50)
     shap_values = explainer(X50)
     
     
@@ -196,7 +230,7 @@ def shap_calculations(regressor,XX_df):
         "catch",
         shap_values,
         X50)
-
+'''
 
 def regression_over_possible_values_XGB(X,y, interval_int):
     parameters = {
@@ -229,8 +263,7 @@ def regression_over_possible_values_XGB(X,y, interval_int):
                                      n_jobs=5,
                                      verbose=0)
     
-        xgb_regressor.fit(X,
-                          y)
+        xgb_regressor.fit(X, y)
     
         print(json.dumps(xgb_regressor.best_params_, sort_keys=False, indent=4))
     
@@ -245,14 +278,7 @@ def regression_over_possible_values_XGB(X,y, interval_int):
                           verbose=False)
     
         y_pred_test = xgb_regressor.predict(X_test)
-    
-        print('2022 stock size: {:,.0f}'.format(y[52]))
-        print('mae: {:,.0f}'.format(mean_absolute_error(y_test, y_pred_test)))
-        print('rmse:{:,.0f}'.format(math.sqrt(mean_squared_error(y_test,
-                                                                 y_pred_test))))
-        print('r2: {:,.2f}'.format(r2_score(y_test, y_pred_test)))
-        print('evs: {:,.2f}'.format(explained_variance_score(y_test,
-                                                             y_pred_test)))
+
     
         result_dict['fjoldi'].append(y[52])
         result_dict['mae'].append(mean_absolute_error(y_test,
@@ -266,13 +292,31 @@ def regression_over_possible_values_XGB(X,y, interval_int):
     
         y[51] += interval_int
         y[52] += interval_int
-    return result_dict
 
+    y[51] = 475000000
+    y[52] = 435000000
+    regressor = GridSearchCV(xgb1,
+                                     parameters,
+                                     cv=2,
+                                     n_jobs=5,
+                                     verbose=0)
+    
+    regressor.fit(X, y)
+    params = regressor.best_params_
+    regressor = xgb.XGBRegressor(**params)
+    regressor.fit(X,y)
+    shap_calculations_xgb(regressor, X)
+
+
+    return result_dict
 
     min_value = min(result_dict['mae'])
     max_value = max(result_dict['evs'])
     min_index = result_dict['mae'].index(min_value)
     max_index = result_dict['evs'].index(max_value)
+    
+    
+
     
     print(min_index, max_index, result_dict['fjoldi'][min_index])
 
@@ -282,8 +326,9 @@ def regression_over_possible_values_random_forest(X, y, interval_int):
     result_dict = {'fjoldi': [], 'mae': [], 'rmse': [], 'r2': [], 'evs': []}
     
 
-    forest = RandomForestRegressor(n_estimators=35,
+    forest = RandomForestRegressor(n_estimators=100,
         criterion='absolute_error',
+        bootstrap = 'True',
         random_state=1,
         n_jobs=-1)
         
@@ -311,12 +356,28 @@ def regression_over_possible_values_random_forest(X, y, interval_int):
 
         y[51] += interval_int
         y[52] += interval_int
+    y[51] = 425000000
+    y[52] = 465000000
+
+    regressor = RandomForestRegressor(n_estimators=35,
+            criterion='absolute_error',
+            random_state=1,
+            n_jobs=-1)
+    regressor.fit(X, y)
+    shap_calculations_rf(regressor, X)
+
+
     return result_dict
 
-def plot_result_range(result_dict, interval_int, fractile):
+    min_value = min(result_dict['mae'])
+    max_value = max(result_dict['evs'])
+    min_index = result_dict['mae'].index(min_value)
+    max_index = result_dict['evs'].index(max_value)
+    return result_dict
+
+def plot_result_range(result_dict, interval_int, fractile, regressor_type):
     
     result_dict['x'] = range(343, 543, int(interval_int/1e6))
-    print(result_dict)
     fig, ax = plt.subplots()
     sns.set(style='whitegrid',
             palette='pastel', )
@@ -327,7 +388,7 @@ def plot_result_range(result_dict, interval_int, fractile):
                  ax=ax)
     ax.set(xlabel = 'size of stock in millions',
            ylabel = 'explainable variance, red',
-           title='school fractile:'+fractile+'\n'+'1996-2022',
+           title='school fractile:'+fractile+'\n'+'regressor type :' + regressor_type + '\n'+'1996-2022',
            ylim=(0,1))
     
     ax2 = ax.twinx()
@@ -337,33 +398,37 @@ def plot_result_range(result_dict, interval_int, fractile):
                  color='blue',
                  markers=True, ax=ax2)
     ax2.set(ylabel = 'mean average error, blue')
+    plt.show()
 
 
 
-def main():
-    fractile = '098'
-    interval_int = 5000000
-    (X,y) = get_data(fractile)
-    result_dict = regression_over_possible_values_XGB(X, y, interval_int)
-    plot_result_range(result_dict, interval_int, fractile )
-    result_dict = regression_over_possible_values_random_forest(X, y, interval_int)
-    plot_result_range(result_dict, interval_int, fractile)
-    
-    
-    
-    # Checking for prinipcal components
-    scaler = StandardScaler()
-    X_sca = scaler.fit_transform(X)
-    
-    
-    pca = PCA(n_components=18)
-    pca.fit(X_sca)
-    print((pca.explained_variance_ratio_))
-    print(pca.singular_values_)
 
 
-if __name__ == "__main__":
-    main()
+
+
+
+fractile = '090'
+interval_int = 1000000
+(X,y) = get_data(fractile)
+print(X)
+result_dict = regression_over_possible_values_XGB(X, y, interval_int)
+regressor_type='rgb'
+plot_result_range(result_dict, interval_int, fractile, regressor_type )
+result_dict = regression_over_possible_values_random_forest(X, y, interval_int)
+regressor_type = 'rf'
+plot_result_range(result_dict, interval_int, fractile, regressor_type)
+# Checking for prinipcal components
+scaler = StandardScaler()
+X_sca = scaler.fit_transform(X)
+
+
+pca = PCA(n_components=18)
+pca.fit(X_sca)
+print((pca.explained_variance_ratio_))
+print(pca.singular_values_)
+
+
+
 
 
 
