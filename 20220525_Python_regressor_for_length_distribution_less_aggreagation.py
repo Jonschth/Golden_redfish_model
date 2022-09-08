@@ -8,10 +8,6 @@ Created on Sat Dec 25 12:23:26 y_
 
 import pandas as pd
 
-import warnings
-warnings.filterwarnings("ignore")
-
-
 import math
 # import numpy as np
 import seaborn as sns
@@ -28,17 +24,63 @@ from sklearn.decomposition import PCA
 import xgboost as xgb
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import GridSearchCV
-# import shap
 import json
 import shap
 
+def get_new_data(fractile):
+    path_str = 'R:\\Ráðgjöf\\Bláa hagkerfið\\Hafró\\distribution_output\\'
+    path_str_do = 'R:\\Ráðgjöf\\Maris Optimum/distribution_output\\'
+    X_df = pd.read_csv(path_str_do+'distribution'+fractile+'.csv',
+                   sep=",")
+    
+    catch_df = pd.read_csv(path_str+'golden_redfish_catch.csv',
+                           sep=";")
+    
+    catch_df.at[2022] = 26
+    
+    X_cal_df = pd.read_csv(path_str_do+'distribution_commercial.csv',
+                           sep=",")
+    X_cal_df.drop(1605, axis = 0, inplace = True)
+    
+    X_cal_df = X_cal_df.pivot(index='ar',
+                              columns='lengd',
+                              values='per')
 
+    X_cal_df = X_cal_df.fillna(0)
+    X_cal_df.columns = 1000 + X_cal_df.columns
+    #X_cal_df.index 
+    X_cal_df.columns = X_cal_df.columns.astype(int).astype(str)
+    
+    XX_df = X_df.pivot(index='ar',
+                       columns='lengd',
+                       values='sum_fjoldi')
+    
+   # XX_df.drop(4.5, axis=1, inplace=True)
+   # XX_df.drop(6.4, axis=1, inplace=True)
+    XX_df.drop(11.9, axis=1, inplace=True)
+    XX_df.drop(12.5, axis=1, inplace=True)
+    XX_df.drop(12.6, axis=1, inplace=True)
+    XX_df.drop(13.1, axis=1, inplace=True)
+    XX_df.drop(13.4, axis=1, inplace=True)
+    XX_df.drop(13.6, axis=1, inplace=True)
+    XX_df.drop(13.7, axis=1, inplace=True)
+    XX_df.drop(13.9, axis=1, inplace=True)
+    XX_df.drop(14.4, axis=1, inplace=True)
+    XX_df.drop(14.5, axis=1, inplace=True)
+    XX_df.drop(14.7, axis=1, inplace=True)
+    XX_df.drop(14.8, axis=1, inplace=True)
+    XX_df.drop(14.9, axis=1, inplace=True)
+    
+    XX_df.columns = XX_df.columns.astype(int).astype(str)
 
-
-
-
-
-
+    YX = pd.read_csv(path_str+"RED_numbers_at_age.csv", sep=";")
+    YY = YX.iloc[15:53, 28]
+    
+    XX_df['catch'] = catch_df.catch.values * -1000
+    XX_df = XX_df.join(X_cal_df.iloc[:, :])
+    XX_df = XX_df.fillna(0)
+    
+    return (XX_df, YY)
 
 def get_data(fractile):
     path_str = 'R:\\Ráðgjöf\\Bláa hagkerfið\\Hafró\\distribution_output\\'
@@ -88,6 +130,17 @@ def get_data(fractile):
         XX_df.at[2022, str(i)] = XX_2022_dict['y'][i-5]/sum_2022_y*XX_df.iloc[24, :56].sum()*.85
     
     
+    YX = pd.read_csv(path_str+"RED_numbers_at_age.csv", sep=";")
+    YY = YX.iloc[15:53, 28]
+    
+    
+    XX_df['catch'] = catch_df.catch.values*-1000
+    XX_df = XX_df.join(X_cal_df.iloc[:, :])
+    XX_df = XX_df.fillna(0)
+    
+
+
+    '''
     XH_df = pd.read_csv(path_str+'distributionH'+fractile+'.csv',
                         sep=",")
     
@@ -100,17 +153,15 @@ def get_data(fractile):
     XXH_df = XXH_df.drop(2011)
     XXH_df = XXH_df.iloc[1:25, :]
     
-    YX = pd.read_csv(path_str+"RED_numbers_at_age.csv", sep=";")
+
     
     YXH = pd.read_csv(path_str+"RED_smh.csv", sep=",")
     YXH['sum'] = YXH.iloc[:, 3:29].sum(axis=1)*1e6
     
     
-    YY = YX.iloc[15:53, 28]
+
     
-    XX_df['catch'] = catch_df.catch.values*-1000
-    XX_df = XX_df.join(X_cal_df.iloc[:, :])
-    XX_df = XX_df.fillna(0)
+
     
     XXH_df['catch'] = catch_df.catch.iloc[12:36].values*-1000
     XXH_df.at['2021', 'catch'] = -34000
@@ -126,7 +177,7 @@ def get_data(fractile):
     XXH_df = XXH_df.fillna(0)
     
     # begin autumnal data
-    '''
+    
     
     XX_df=XXH_df.iloc[1:, :]
     YY=(YY[14:])
@@ -152,7 +203,6 @@ def fitting_plot(y_test, y_pred_test, X_test, xgb_regressor):
     plt.grid(True)
     plt.legend()
     plt.show()
-    
     
 def error_plot(regressor):
     results = regressor.evals_result()
@@ -183,8 +233,7 @@ def shap_calculations_xgb(regressor,XX_df):
     
     shap_values = explainer(XX_df.iloc[16:,:])
     shap.waterfall_plot(shap_values[21])
-    
-    
+
 def shap_calculations_rf(regressor,XX_df):
         
     X = XX_df.iloc[16:,:]
@@ -237,7 +286,7 @@ def regression_over_possible_values_XGB(X,y, interval_int):
         'nthread': [0],
         'objective': ['reg:squarederror'],
         'eval_metric': ["error"],
-        'learning_rate': [.4, .5, .6],
+        'learning_rate': [.4, .5, .6, .7, .8],
         'max_depth': [3, 4, 5],
         'min_child_weight': [3, 4, 5],
         'subsample': [0.6, 0.7],
@@ -289,10 +338,10 @@ def regression_over_possible_values_XGB(X,y, interval_int):
                                           y_pred_test))
         result_dict['evs'].append(explained_variance_score(y_test,
                                                            y_pred_test))
-    
+        y[50] += interval_int
         y[51] += interval_int
         y[52] += interval_int
-
+    y[50] = 515000000
     y[51] = 475000000
     y[52] = 435000000
     regressor = GridSearchCV(xgb1,
@@ -340,6 +389,7 @@ def regression_over_possible_values_random_forest(X, y, interval_int):
                                                     random_state=seed)
             
 
+
         forest.fit(X_train, y_train)
         
         y_pred_test = forest.predict(X_test)
@@ -353,11 +403,11 @@ def regression_over_possible_values_random_forest(X, y, interval_int):
                                       y_pred_test))
         result_dict['evs'].append(explained_variance_score(y_test,
                                                            y_pred_test))
-
+        y[50] += interval_int
         y[51] += interval_int
         y[52] += interval_int
-    y[51] = 425000000
-    y[52] = 465000000
+    y[51] = 475000000
+    y[52] = 435000000
 
     regressor = RandomForestRegressor(n_estimators=35,
             criterion='absolute_error',
@@ -401,22 +451,17 @@ def plot_result_range(result_dict, interval_int, fractile, regressor_type):
     plt.show()
 
 
+fractile = '096'
+interval_int = 10000000
 
-
-
-
-
-
-fractile = '090'
-interval_int = 1000000
-(X,y) = get_data(fractile)
+(X,y) = get_new_data(fractile)
 print(X)
 result_dict = regression_over_possible_values_XGB(X, y, interval_int)
 regressor_type='rgb'
 plot_result_range(result_dict, interval_int, fractile, regressor_type )
-result_dict = regression_over_possible_values_random_forest(X, y, interval_int)
+result_dict_xgb = regression_over_possible_values_random_forest(X, y, interval_int)
 regressor_type = 'rf'
-plot_result_range(result_dict, interval_int, fractile, regressor_type)
+plot_result_range(result_dict_xgb, interval_int, fractile, regressor_type)
 # Checking for prinipcal components
 scaler = StandardScaler()
 X_sca = scaler.fit_transform(X)
