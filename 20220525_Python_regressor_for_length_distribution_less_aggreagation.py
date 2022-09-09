@@ -35,8 +35,10 @@ def get_new_data(fractile):
     
     catch_df = pd.read_csv(path_str+'golden_redfish_catch.csv',
                            sep=";")
+    print(catch_df)
+    catch_df.at[37, 'catch'] = 26
     
-    catch_df.at[2022] = 26
+    print(catch_df)
     
     X_cal_df = pd.read_csv(path_str_do+'distribution_commercial.csv',
                            sep=",")
@@ -44,7 +46,7 @@ def get_new_data(fractile):
     
     X_cal_df = X_cal_df.pivot(index='ar',
                               columns='lengd',
-                              values='per')
+                              values='per_length')
 
     X_cal_df = X_cal_df.fillna(0)
     X_cal_df.columns = 1000 + X_cal_df.columns
@@ -53,7 +55,7 @@ def get_new_data(fractile):
     
     XX_df = X_df.pivot(index='ar',
                        columns='lengd',
-                       values='sum_fjoldi')
+                       values='per_length')
     
    # XX_df.drop(4.5, axis=1, inplace=True)
    # XX_df.drop(6.4, axis=1, inplace=True)
@@ -76,11 +78,28 @@ def get_new_data(fractile):
     YX = pd.read_csv(path_str+"RED_numbers_at_age.csv", sep=";")
     YY = YX.iloc[15:53, 28]
     
-    XX_df['catch'] = catch_df.catch.values * -1000
+    catch_df = catch_converter(X_cal_df, catch_df)
+    print(catch_df)
+
+    
+    XX_df['catch'] = catch_df.number.values * 1000
     XX_df = XX_df.join(X_cal_df.iloc[:, :])
     XX_df = XX_df.fillna(0)
-    
+    XX_df.index =XX_df.index.astype(str)  
     return (XX_df, YY)
+
+def catch_converter(X_catch_per_df, catch_df ):
+    '''
+
+     '''        
+    for ind in range(1985,2022):
+        average_weight = 0
+        for col in range(1010,1060):
+            average_weight += ( X_catch_per_df.loc[ind, str(col)])* (0.0016*(col)**2 - 0.055*(col) + 0.6)
+            print(0.0016*(col)**2 - 0.055*(col) + 0.6)
+        catch_df.at[ind+1-1985, 'number'] = catch_df.loc[ind+1-1985,'catch']/average_weight
+    return catch_df
+    
 
 def get_data(fractile):
     path_str = 'R:\\Ráðgjöf\\Bláa hagkerfið\\Hafró\\distribution_output\\'
@@ -293,7 +312,7 @@ def regression_over_possible_values_XGB(X,y, interval_int):
         'colsample_bytree': [.5, .6, .7],
         'n_estimators': [35]
     }
-    test_size = .25
+    test_size = .30
     seed = 4
     result_dict = {'fjoldi': [], 'mae': [], 'rmse': [], 'r2': [], 'evs': []}
 
@@ -305,6 +324,11 @@ def regression_over_possible_values_XGB(X,y, interval_int):
                                                             y.iloc[14:],
                                                             test_size=test_size,
                                                             random_state=seed)
+    
+    
+        dtrain = dtrain = xgb.DMatrix(data=X_train.values,
+                     feature_names=X_train.columns,
+                     label=y_train.values)
     
         xgb_regressor = GridSearchCV(xgb1,
                                      parameters,
@@ -452,7 +476,7 @@ def plot_result_range(result_dict, interval_int, fractile, regressor_type):
 
 
 fractile = '096'
-interval_int = 10000000
+interval_int = 1000000
 
 (X,y) = get_new_data(fractile)
 print(X)
