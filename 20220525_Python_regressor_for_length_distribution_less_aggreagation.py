@@ -82,7 +82,7 @@ def get_new_data(fractile):
     print(catch_df)
 
     
-    XX_df['catch'] = catch_df.number.values * 1000
+    XX_df['catch'] = catch_df.number.values * -1000000
     XX_df = XX_df.join(X_cal_df.iloc[:, :])
     XX_df = XX_df.fillna(0)
     XX_df.index =XX_df.index.astype(str)  
@@ -95,8 +95,7 @@ def catch_converter(X_catch_per_df, catch_df ):
     for ind in range(1985,2022):
         average_weight = 0
         for col in range(1010,1060):
-            average_weight += ( X_catch_per_df.loc[ind, str(col)])* (0.0016*(col)**2 - 0.055*(col) + 0.6)
-            print(0.0016*(col)**2 - 0.055*(col) + 0.6)
+            average_weight += ( X_catch_per_df.loc[ind, str(col)])* (0.0015*(col-1000)**2 - 0.055*(col-1000) + 0.65)
         catch_df.at[ind+1-1985, 'number'] = catch_df.loc[ind+1-1985,'catch']/average_weight
     return catch_df
     
