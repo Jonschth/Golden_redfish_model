@@ -35,10 +35,10 @@ def get_new_data(fractile):
     
     catch_df = pd.read_csv(path_str+'golden_redfish_catch.csv',
                            sep=";")
-    print(catch_df)
+
     catch_df.at[37, 'catch'] = 26
     
-    print(catch_df)
+
     
     X_cal_df = pd.read_csv(path_str_do+'distribution_commercial.csv',
                            sep=",")
@@ -50,15 +50,15 @@ def get_new_data(fractile):
 
     X_cal_df = X_cal_df.fillna(0)
     X_cal_df.columns = 1000 + X_cal_df.columns
-    #X_cal_df.index 
+    #X_cal_df.index    
     X_cal_df.columns = X_cal_df.columns.astype(int).astype(str)
     
     XX_df = X_df.pivot(index='ar',
                        columns='lengd',
                        values='per_length')
     
-   # XX_df.drop(4.5, axis=1, inplace=True)
-   # XX_df.drop(6.4, axis=1, inplace=True)
+    #XX_df.drop(4.5, axis=1, inplace=True)
+    #XX_df.drop(6.4, axis=1, inplace=True)
     XX_df.drop(11.9, axis=1, inplace=True)
     XX_df.drop(12.5, axis=1, inplace=True)
     XX_df.drop(12.6, axis=1, inplace=True)
@@ -79,7 +79,6 @@ def get_new_data(fractile):
     YY = YX.iloc[15:53, 28]
     
     catch_df = catch_converter(X_cal_df, catch_df)
-    print(catch_df)
 
     
     XX_df['catch'] = catch_df.number.values * -1000000
@@ -89,13 +88,27 @@ def get_new_data(fractile):
     return (XX_df, YY)
 
 def catch_converter(X_catch_per_df, catch_df ):
-    '''
+    from sklearn.linear_model import LinearRegression
+    path_grs_str = 'R:/Ráðgjöf/Maris Optimum/Golden_redfish_model/'
+    wl_df = pd.read_csv(path_grs_str+'RED_gadget_n_at_age.csv',sep=',')
+    Xl = wl_df[['year','mean_length']]
+    yl = wl_df[['year','mean_weight']]
+    for index,row in Xl.iterrows():
+        Xl.at[index,'squared'] = row[1]**2
+    print(Xl)
 
-     '''        
+    
     for ind in range(1985,2022):
         average_weight = 0
+        reg_X = Xl[Xl['year'] == ind]
+        reg_y = yl[yl['year'] == ind]
+        reg = LinearRegression().fit(reg_X[['mean_length', 'squared']], reg_y[['mean_weight']])
+        print(reg.coef_)
+        a = reg.coef_[0][0]
+        b = reg.coef_[0][1]
+        c = reg.intercept_
         for col in range(1010,1060):
-            average_weight += ( X_catch_per_df.loc[ind, str(col)])* (0.0015*(col-1000)**2 - 0.055*(col-1000) + 0.65)
+            average_weight += ( X_catch_per_df.loc[ind, str(col)])* (a*(col-1000)**2 + b*(col-1000) + c)
         catch_df.at[ind+1-1985, 'number'] = catch_df.loc[ind+1-1985,'catch']/average_weight
     return catch_df
     
@@ -304,12 +317,12 @@ def regression_over_possible_values_XGB(X,y, interval_int):
         'nthread': [0],
         'objective': ['reg:squarederror'],
         'eval_metric': ["error"],
-        'learning_rate': [.4, .5, .6, .7, .8],
-        'max_depth': [3, 4, 5],
-        'min_child_weight': [3, 4, 5],
+        'learning_rate': [ .2, .3, .5, .6, .8, 1],
+        'max_depth': [1, 2, 3, 4, 5],
+        'min_child_weight': [1, 2,3, 4, 5],
         'subsample': [0.6, 0.7],
         'colsample_bytree': [.5, .6, .7],
-        'n_estimators': [35]
+        'n_estimators': [55]
     }
     test_size = .30
     seed = 4
@@ -362,11 +375,11 @@ def regression_over_possible_values_XGB(X,y, interval_int):
         result_dict['evs'].append(explained_variance_score(y_test,
                                                            y_pred_test))
         y[50] += interval_int
-        y[51] += interval_int
-        y[52] += interval_int
-    y[50] = 515000000
-    y[51] = 475000000
-    y[52] = 435000000
+        y[51] += interval_int * (1 + y[51] / y[50])
+        y[52] += interval_int * (1 + y[52] / y[50])
+    y[50] = 505000000
+    y[51] = 465000000
+    y[52] = 425000000
     regressor = GridSearchCV(xgb1,
                                      parameters,
                                      cv=2,
@@ -475,7 +488,7 @@ def plot_result_range(result_dict, interval_int, fractile, regressor_type):
 
 
 fractile = '096'
-interval_int = 1000000
+interval_int = 2000000
 
 (X,y) = get_new_data(fractile)
 print(X)
