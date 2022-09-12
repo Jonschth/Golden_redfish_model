@@ -468,12 +468,12 @@ def plot_result_range(result_dict, interval_int, fractile, regressor_type):
     sns.set(style='whitegrid',
             palette='pastel', )
     sns.lineplot(x='x',
-                 y='evs',
+                 y='r2',
                  data=result_dict,
                  color="red",
                  ax=ax)
     ax.set(xlabel = 'size of stock in millions',
-           ylabel = 'explainable variance, red',
+           ylabel = 'r2, red',
            title='school fractile:'+fractile+'\n'+'regressor type :' + regressor_type + '\n'+'1996-2022',
            ylim=(0,1))
     
@@ -488,7 +488,7 @@ def plot_result_range(result_dict, interval_int, fractile, regressor_type):
 
 
 fractile = '096'
-interval_int = 2000000
+interval_int = 1000000
 
 (X,y) = get_new_data(fractile)
 print(X)
