@@ -5,7 +5,6 @@ Created on Sat Dec 25 12:23:26 y_
 @author: jst
 """
 
-
 import pandas as pd
 import math
 # import numpy as np
@@ -18,8 +17,8 @@ from sklearn.metrics import mean_squared_error
 from sklearn.metrics import explained_variance_score
 from sklearn.metrics import r2_score
 # from sklearn.pipeline
-from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA
+# from sklearn.preprocessing import StandardScaler
+# from sklearn.decomposition import PCA
 import xgboost as xgb
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import GridSearchCV
@@ -35,10 +34,6 @@ def get_new_data(fractile):
     ysq_df = X_df[['ar', 'max(cum)']]
     ysq_df.set_index(['ar'], inplace = True)
     ysq_df = ysq_df[~ysq_df.index.duplicated(keep='first')]
-    
-
-    
-    
     
     catch_df = pd.read_csv(path_str+'golden_redfish_catch.csv',
                            sep=";")
@@ -56,27 +51,16 @@ def get_new_data(fractile):
     X_cal_df = X_cal_df.pivot(index='ar',
                               columns='lengd',
                               values='per_length')
-
     X_cal_df = X_cal_df.fillna(0)
     X_cal_df.columns = 1000 + X_cal_df.columns
     X_cal_df.columns = X_cal_df.columns.astype(int).astype(str)
-    
-    
-    
     
     catch_df = catch_converter(X_cal_df, catch_df)
     catch_df.year = catch_df.year.astype(int)
     catch_df.set_index(catch_df.year, inplace = True)
     
-    
     X_cal_df = X_cal_df.mul(catch_df.number*-1e6,axis = 0)
     
-    
-
-    
-
-    
-   
     XX_df = X_df.pivot(index='ar',
                        columns='lengd',
                        values='per_length')
@@ -106,7 +90,6 @@ def get_new_data(fractile):
     
   
     
-    #XX_df['catch'] = catch_df.number.values * -1000000
     XX_df = XX_df.join(X_cal_df.iloc[:, :])
 
     XX_df.index =XX_df.index.astype(str)  
@@ -124,12 +107,11 @@ def catch_converter(X_catch_per_df, catch_df ):
     from sklearn.linear_model import LinearRegression
     path_grs_str = 'R:/Ráðgjöf/Maris Optimum/Golden_redfish_model/'
     wl_df = pd.read_csv(path_grs_str+'RED_gadget_n_at_age.csv',sep=',')
+    print(wl_df)
     Xl = wl_df[['year','mean_length']]
     yl = wl_df[['year','mean_weight']]
     for index,row in Xl.iterrows():
         Xl.at[index,'squared'] = row[1]**2
-
-    
     for year in range(1985,2022):
         average_weight = 0
         reg_X = Xl[Xl['year'] == year]
@@ -138,6 +120,7 @@ def catch_converter(X_catch_per_df, catch_df ):
         b = reg.coef_[0][0]
         a = reg.coef_[0][1]
         c = reg.intercept_
+        print(year,a,b,c)
         for col in range(1010,1060):
             average_weight += ( X_catch_per_df.loc[year, str(col)])* (a*(col - 1000)**2 + b*(col - 1000) + c)
         catch_df.at[year - 1985, 'number'] = catch_df.loc[year - 1985,'catch']/average_weight
@@ -184,19 +167,19 @@ def shap_calculations_xgb(regressor,XX_df):
     
     explainer = shap.TreeExplainer(regressor)
     
-    shap_values = explainer.shap_values(XX_df.iloc[16:,:])
+    shap_values = explainer.shap_values(XX_df)
     
     shap.summary_plot(shap_values,
-                      XX_df.iloc[16:,:],
-                      plot_type="layered_violin",
+                      XX_df,
+                      plot_type="bar",
                       max_display=40)
     
-    shap_values = explainer(XX_df.iloc[16:,:])
-    
+    shap_values = explainer(XX_df)
     shap.waterfall_plot(shap_values[21], max_display=40)
     shap.waterfall_plot(shap_values[19], max_display=40)
     shap.waterfall_plot(shap_values[17], max_display=40)
     shap.waterfall_plot(shap_values[15], max_display=40)
+    shap.waterfall_plot(shap_values[13], max_display=40)
     
 
 def shap_calculations_rf(regressor,XX_df):
@@ -219,8 +202,10 @@ def shap_calculations_rf(regressor,XX_df):
             self.values = shap_values.values[i]
     shap_values = explainer(X)
     
-
-    shap.waterfall_plot(helper_object(21))
+    shap.waterfall_plot(helper_object(37))
+    shap.waterfall_plot(helper_object(35))
+    shap.waterfall_plot(helper_object(33))
+    shap.waterfall_plot(helper_object(31))
     
 
 def regression_over_possible_values_XGB(X,y, interval_int):
@@ -228,20 +213,20 @@ def regression_over_possible_values_XGB(X,y, interval_int):
         'nthread': [0],
         'objective': ['reg:squarederror'],
         'eval_metric': ["mae"],
-        'learning_rate': [.3,  .5,.7, .9],
+        'learning_rate': [.2, .3, .4,.5,.7, .9],
         'max_depth': [1, 2, 3, 4, 5],
         'min_child_weight': [1, 2, 3, 4, 5],
-        'subsample': [0.6, 0.7],
+        'subsample': [0.5, 0.6, 0.7],
         'colsample_bytree': [.5, .6, .7],
         'n_estimators': [55]
     }
-    test_size = .30
+    test_size = .25
     seed = 4
     result_dict = {'fjoldi2022': [], 'fjoldi2021': [], 'fjoldi2020': [], 'mae': [], 'rmse': [], 'r2': [], 'evs': []}
 
     xgb1 = xgb.XGBRegressor(seed)
     
-    for add_int in range(0, 200000000, interval_int):
+    for add_int in range(0, 5000000, interval_int):
     
         X_train, X_test, y_train, y_test = train_test_split(X.iloc[14:, :],
                                                             y.iloc[14:],
@@ -249,14 +234,10 @@ def regression_over_possible_values_XGB(X,y, interval_int):
                                                             random_state=seed)
     
 
-
-
-
-
         xgb_regressor = RandomizedSearchCV(xgb1,
                                      parameters,
-                                     cv=3,
-                                     n_iter=100,
+                                     cv=2,
+                                     n_iter = 50,
                                      verbose=0)
     
 
@@ -284,7 +265,7 @@ def regression_over_possible_values_XGB(X,y, interval_int):
         result_dict['evs'].append(explained_variance_score(y_test,
                                                            y_pred_test))
         y[50] += interval_int * (y[50]/y[51])
-        y[51] += interval_int *(y[51]/y[51])
+        y[51] += interval_int *(y[51]/y[52])
         y[52] += interval_int
     
     min_value = min(result_dict['mae'])
@@ -299,6 +280,7 @@ def regression_over_possible_values_XGB(X,y, interval_int):
     regressor = GridSearchCV(xgb1,
                                      parameters,
                                      cv=3,
+                                     n_jobs=50,
                                      verbose=0)
     
     regressor.fit(X, y)
@@ -311,21 +293,19 @@ def regression_over_possible_values_XGB(X,y, interval_int):
     return result_dict
 
 
-
-
 def regression_over_possible_values_random_forest(X, y, interval_int):
     test_size = .25
     seed = 4
     result_dict = {'fjoldi': [], 'mae': [], 'rmse': [], 'r2': [], 'evs': []}
     
 
-    forest = RandomForestRegressor(n_estimators=200,
+    forest = RandomForestRegressor(n_estimators=100,
         criterion='mae',
         bootstrap = 'True',
         random_state=1,
         n_jobs=-1)
         
-    for add_int in range(0, 200000000, interval_int):
+    for add_int in range(0, 5000000, interval_int):
 
         X_train, X_test, y_train, y_test = train_test_split(X.iloc[14:, :],
                                                     y.iloc[14:],
@@ -348,31 +328,16 @@ def regression_over_possible_values_random_forest(X, y, interval_int):
         result_dict['evs'].append(explained_variance_score(y_test,
                                                            y_pred_test))
         y[50] += interval_int * (y[50]/y[51])
-        y[51] += interval_int *(y[51]/y[51])
+        y[51] += interval_int *(y[51]/y[52])
         y[52] += interval_int
-    y[50] = 535000000
-    y[51] = 470000000
-    y[52] = 450000000
-
-    regressor = RandomForestRegressor(n_estimators=35,
-            criterion='mae',
-            random_state=1,
-            n_jobs=-1)
-    regressor.fit(X, y)
-    shap_calculations_rf(regressor, X)
-
 
     return result_dict
 
-    min_value = min(result_dict['mae'])
-    max_value = max(result_dict['evs'])
-    min_index = result_dict['mae'].index(min_value)
-    max_index = result_dict['evs'].index(max_value)
-    return result_dict
+
 
 def plot_result_range(result_dict, interval_int, fractile, regressor_type):
     
-    result_dict['x'] = range(343, 543, int(interval_int/1e6))
+    result_dict['x'] = range(343, 348, int(interval_int/1e6))
     fig, ax = plt.subplots()
     sns.set(style='whitegrid',
             palette='pastel', )
@@ -412,7 +377,7 @@ plot_result_range(result_dict_RF, interval_int, fractile, regressor_type)
 
 
 
-
+'''
 scaler = StandardScaler()
 X_sca = scaler.fit_transform(X)
 pca = PCA(n_components=18)
@@ -430,5 +395,5 @@ y[47] -=4000000
 y[48] -=4000000
 y[49] -=1000000
 
-
+'''
 
