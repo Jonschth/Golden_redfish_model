@@ -10,13 +10,14 @@ from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import explained_variance_score
 from sklearn.metrics import r2_score
+from sklearn.linear_model import LinearRegression
 # from sklearn.pipeline
 # from sklearn.preprocessing import StandardScaler
 # from sklearn.decomposition import PCA
 import xgboost as xgb
-from sklearn.ensemble import RandomForestRegressor
+# from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import GridSearchCV
-from sklearn.model_selection import RandomizedSearchCV
+# from sklearn.model_selection import RandomizedSearchCV
 import shap
 
 
@@ -131,7 +132,6 @@ def catch_converter(X_catch_per_df, catch_df):
     -------
     catch_df : Dataframe containing total catch in lengths
     """
-    from sklearn.linear_model import LinearRegression
     path_grs_str = 'R:/Ráðgjöf/Maris Optimum/Golden_redfish_model/'
     wl_df = pd.read_csv(path_grs_str+'RED_gadget_n_at_age.csv', sep=',')
     Xl = wl_df[['year', 'mean_length']]
@@ -253,44 +253,6 @@ def shap_calculations_xgb(regressor, XX_df):
     shap.waterfall_plot(shap_values[29], max_display=40)
 
 
-def shap_calculations_rf(regressor, XX_df):
-    """
-    Calculate shap vales for the xgb_regressor and the dependant variables.
-
-    Parameters
-    ----------
-    regressor : tuned random forest regressor
-    XX_df : dataframe with dependent variables
-
-    Returns
-    -------
-    None.
-
-    """
-    X = XX_df
-    explainer = shap.TreeExplainer(regressor)
-
-    shap_values = explainer.shap_values(X)
-
-    shap.summary_plot(shap_values,
-                      X,
-                      plot_type="layered_violin",
-                      max_display=50)
-
-    class helper_object():
-        def __init__(self, i):
-            self.base_values = shap_values.base_values[i][0]
-            self.data = shap_values.data[i]
-            self.feature_names = X.columns.to_list()
-            self.values = shap_values.values[i]
-    shap_values = explainer(X)
-
-    shap.waterfall_plot(helper_object(37))
-    shap.waterfall_plot(helper_object(35))
-    shap.waterfall_plot(helper_object(33))
-    shap.waterfall_plot(helper_object(31))
-
-
 def regression_over_possible_values_XGB(X, y, interval_int):
     """
     Loop over possible stock sizes, regressing in every step.
@@ -310,12 +272,12 @@ def regression_over_possible_values_XGB(X, y, interval_int):
         'nthread': [0],
         'objective': ['reg:squarederror'],
         'eval_metric': ["mae"],
-        'learning_rate': [.2, .3, .4, .5],
-        'max_depth': [1, 2, 3, 4, 5],
-        'min_child_weight': [2, 3],
-        'subsample': [0.5, 0.6, 0.7],
-        'colsample_bytree': [.5, .6, .7],
-        'n_estimators': [100]
+        'learning_rate': [.2, .3],
+        'max_depth': [2, 3, 4],
+        'min_child_weight': [2],
+        'subsample': [0.5, 0.6],
+        'colsample_bytree': [.6, .7],
+        'n_estimators': [50]
     }
     test_size = .25
     seed = 3
@@ -332,6 +294,19 @@ def regression_over_possible_values_XGB(X, y, interval_int):
             y,
             test_size=test_size,
             random_state=seed)
+
+        X_train = pd.concat([X.iloc[:27, :], X.iloc[35:38, :]])
+        y_train = pd.concat([y.iloc[:27], y.iloc[35:38]])
+        X_test = X.iloc[27:35, :]
+        y_test = y.iloc[27:35]
+        '''
+
+        X_train = X.iloc[:30, :]
+        y_train = y.iloc[:30]
+        X_test = X.iloc[30:38, :]
+        y_test = y.iloc[30:38]
+        '''
+
         n_iter = 200
         n_iter = n_iter
 
@@ -382,61 +357,9 @@ def regression_over_possible_values_XGB(X, y, interval_int):
     params = regressor.best_params_
     regressor = xgb.XGBRegressor(**params)
     regressor.fit(X, y)
+    print(regressor.predict(X))
 
     shap_calculations_xgb(regressor, X)
-
-    return result_dict
-
-
-def regression_over_possible_values_random_forest(X, y, interval_int):
-    """
-    Regresses over X, y using random forest.
-
-    Parameters
-    ----------
-    X :Dataframe for  dependant variables
-    y : Dataframe for independant variable
-    interval_int : Tinteger, size of interval
-
-    Returns
-    -------
-    result_dict : dictionary with results from all iterations.
-
-    """
-    test_size = .20
-    seed = 5
-    result_dict = {'fjoldi': [], 'mae': [], 'rmse': [], 'r2': [], 'evs': []}
-
-    forest = RandomForestRegressor(n_estimators=300,
-                                   criterion='absolute_error',
-                                   bootstrap='False',
-                                   random_state=1,
-                                   n_jobs=-1)
-
-    for add_int in range(0, 150000000, interval_int):
-
-        X_train, X_test, y_train, y_test = train_test_split(
-            X.iloc[14:, :],
-            y.iloc[14:],
-            test_size=test_size,
-            random_state=seed)
-
-        forest.fit(X_train, y_train)
-
-        y_pred_test = forest.predict(X_test)
-
-        result_dict['fjoldi'].append(y[52])
-        result_dict['mae'].append(mean_absolute_error(y_test,
-                                                      y_pred_test))
-        result_dict['rmse'].append(math.sqrt(mean_squared_error(y_test,
-                                                                y_pred_test)))
-        result_dict['r2'].append(r2_score(y_test,
-                                          y_pred_test))
-        result_dict['evs'].append(explained_variance_score(y_test,
-                                                           y_pred_test))
-        y[50] += interval_int * (y[50]/y[51])
-        y[51] += interval_int * (y[51]/y[52])
-        y[52] += interval_int
 
     return result_dict
 
@@ -492,14 +415,6 @@ result_dict_gb = regression_over_possible_values_XGB(X, y, interval_int)
 regressor_type = 'rgb'
 plot_result_range(result_dict_gb, interval_int, fractile, regressor_type)
 
-(X, y) = get_new_data(fractile)
-
-result_dict_RF = regression_over_possible_values_random_forest(
-    X, y, interval_int)
-regressor_type = 'rf'
-plot_result_range(result_dict_RF, interval_int, fractile, regressor_type)
-
-
 '''
 scaler = StandardScaler()
 X_sca = scaler.fit_transform(X)
@@ -509,11 +424,11 @@ print((pca.explained_variance_ratio_))
 print(pca.singular_values_)
 '''
 
-y[41] -= 152000000
+
 y[42] -= 66000000
 y[43] -= 107000000
 y[44] -= 48000000
-y[45] -= 10030000
+y[45] -= 13300000
 y[46] -= 11000000
 y[47] -= 21000000
 y[48] -= 554564

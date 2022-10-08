@@ -315,7 +315,7 @@ def regression_over_possible_values_XGB(X, y, interval_int):
         'min_child_weight': [2, 3],
         'subsample': [0.5, 0.6, 0.7],
         'colsample_bytree': [.5, .6, .7],
-        'n_estimators': [100]
+        'n_estimators': [55]
     }
     test_size = .25
     seed = 3
